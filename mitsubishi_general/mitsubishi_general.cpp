@@ -7,9 +7,9 @@ namespace mitsubishi_general {
 static const char *TAG = "mitsubishi_general.climate";
 
 // Control packet
-const uint16_t MITSUBISHI_STATE_LENGTH = 13;
-const uint8_t MITSUBISHI_DEFAULT_STATE[MITSUBISHI_STATE_LENGTH] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0B, 0x10, 0x00, 0x00, 0x00, 0x30};
-const uint8_t MITSUBISHI_CRC_BYTE = 12;
+const uint16_t MITSUBISHI_STATE_LENGTH = 14;
+const uint8_t MITSUBISHI_DEFAULT_STATE[MITSUBISHI_STATE_LENGTH] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0B, 0x10, 0x00, 0x00, 0x00, 0x00, 0x30};
+const uint8_t MITSUBISHI_CRC_BYTE = 13;
 
 // Temperature and POWER ON
 const uint8_t MITSUBISHI_GENERAL_POWER_MASK  = 0b00000100;
@@ -23,8 +23,7 @@ const uint8_t MITSUBISHI_GENERAL_MODE_HEAT_BYTE6 = 0b00000001;
 const uint8_t MITSUBISHI_GENERAL_MODE_COOL_BYTE6 = 0b00000011;
 const uint8_t MITSUBISHI_GENERAL_MODE_DRY_BYTE6  = 0b00000010;
 
-// Temperaute (default 24)
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE7      = 0b00000111;
+const uint8_t MITSUBISHI_GENERAL_TEMP_MASK_BYTE7  = 0b00001111;
 
 const uint8_t MITSUBISHI_GENERAL_MODE_AUTO_BYTE8 = 0b00110000;
 const uint8_t MITSUBISHI_GENERAL_MODE_HEAT_BYTE8 = 0b00110001;
@@ -32,17 +31,22 @@ const uint8_t MITSUBISHI_GENERAL_MODE_COOL_BYTE8 = 0b00110110;
 const uint8_t MITSUBISHI_GENERAL_MODE_DRY_BYTE8  = 0b00110010;
 const uint8_t MITSUBISHI_GENERAL_BASE_BYTE8      = MITSUBISHI_GENERAL_MODE_AUTO_BYTE8;
 
-// Fan speed and swing
-const uint8_t MITSUBISHI_GENERAL_FAN_AUTO_BYTE9   = 0b10000000;
-const uint8_t MITSUBISHI_GENERAL_FAN_HIGH_BYTE9   = 0b00000100;
-const uint8_t MITSUBISHI_GENERAL_FAN_MEDIUM_BYTE9 = 0b00000010;
-const uint8_t MITSUBISHI_GENERAL_FAN_LOW_BYTE9    = 0b00000001;
-const uint8_t MITSUBISHI_GENERAL_FAN_SILENT_BYTE9 = 0b00000101;
-const uint8_t MITSUBISHI_GENERAL_VANNE_AUTO_BYTE9 = 0b01000000;
-const uint8_t MITSUBISHI_GENERAL_VANNE_MAX_BYTE9  = 0b01000000;
-const uint8_t MITSUBISHI_GENERAL_VANNE_MIN_BYTE9  = 0b01000000;
-const uint8_t MITSUBISHI_GENERAL_VANNE_MOVE_BYTE9 = 0b01111000;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE9       = MITSUBISHI_GENERAL_FAN_AUTO_BYTE9|MITSUBISHI_GENERAL_VANNE_AUTO_BYTE9;
+
+const uint8_t MITSUBISHI_GENERAL_FAN_MASK         = 0b10000111;// Fan speed and swing
+const uint8_t MITSUBISHI_GENERAL_FAN_AUTO         = 0b10000000;
+const uint8_t MITSUBISHI_GENERAL_FAN_HIGH         = 0b00000100;
+const uint8_t MITSUBISHI_GENERAL_FAN_MEDIUM       = 0b00000010;
+const uint8_t MITSUBISHI_GENERAL_FAN_LOW          = 0b00000001;
+const uint8_t MITSUBISHI_GENERAL_FAN_SILENT       = 0b00000101;
+
+const uint8_t MITSUBISHI_GENERAL_VANNE_MASK    = 0b00111000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_AUTO    = 0b00111000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_LOWEST  = 0b00001000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_LOW     = 0b00100000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_MIDDLE  = 0b00011000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_HIGH    = 0b00010000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_HIGHEST = 0b00001000;
+const uint8_t MITSUBISHI_GENERAL_VANNE_MOVE    = 0b00000000;
 
 const uint8_t MITSUBISHI_GENERAL_BASE_BYTE10 = 0x00;
 const uint8_t MITSUBISHI_GENERAL_BASE_BYTE11 = 0x00;
@@ -96,6 +100,18 @@ void MitsubishiGeneralClimate::control(const climate::ClimateCall &call) {
               break;
         }*/
     }
+
+    if(call.get_swing_mode().has_value()) {
+      ESP_LOGD("control", "Requested swing mode is %s", call.get_swing_mode());
+      switch(*call.get_fan_mode()) {
+      case climate::CLIMATE_SWING_OFF:
+        mSwingMode = MITSUBISHI_GENERAL_VANNE_MOVE;
+        break;
+      default:
+        mSwingMode = MITSUBISHI_GENERAL_VANNE_MOVE;
+        break;
+      }
+    }
 }
 
 climate::ClimateTraits MitsubishiGeneralClimate::traits() {
@@ -136,18 +152,19 @@ void MitsubishiGeneralClimate::transmit_state() {
   // Set temperature
   uint8_t safecelsius = std::max((uint8_t) this->target_temperature, MITSUBISHI_GENERAL_TEMP_MIN);
   safecelsius = std::min(safecelsius, MITSUBISHI_GENERAL_TEMP_MAX);
-  remote_state[7] = (byte) safecelsius - MITSUBISHI_GENERAL_TEMP_MIN;
+  remote_state[7] &= ~MITSUBISHI_GENERAL_TEMP_MASK_BYTE7;
+  remote_state[7] |= (byte) safecelsius - MITSUBISHI_GENERAL_TEMP_MIN;
 
   // If not powered - set power on flag
-  remote_state[5] = remote_state[5] & ~MITSUBISHI_GENERAL_POWER_MASK;
+  remote_state[5] &= ~MITSUBISHI_GENERAL_POWER_MASK;
   if (!this->power_ || mode==climate::CLIMATE_MODE_OFF) {
-    remote_state[5] |= MITSUBISHI_GENERAL_POWER_ON_BYTE5;
-  } else {
     remote_state[5] |= MITSUBISHI_GENERAL_POWER_OFF_BYTE5;
+  } else {
+    remote_state[5] |= MITSUBISHI_GENERAL_POWER_ON_BYTE5;
   }
 
   // Set mode
-  remote_state[6] = remote_state[6] & ~MITSUBISHI_GENERAL_MODE_MASK;
+  remote_state[6] &= ~MITSUBISHI_GENERAL_MODE_MASK;
   switch (this->mode) {
     case climate::CLIMATE_MODE_OFF:
       remote_state[6] = MITSUBISHI_GENERAL_MODE_AUTO_BYTE6;
@@ -164,7 +181,11 @@ void MitsubishiGeneralClimate::transmit_state() {
       // TODO: CLIMATE_MODE_FAN_ONLY, CLIMATE_MODE_DRY, CLIMATE_MODE_10C are missing in esphome
   }
 
-  remote_state[9] = mFanSpeed + MITSUBISHI_GENERAL_VANNE_MOVE_BYTE9;
+  remote_state[8] &= ~MITSUBISHI_GENERAL_FAN_MASK;
+  remote_state[8] |= mFanSpeed;
+
+  remote_state[8] &= ~MITSUBISHI_GENERAL_VANNE_MASK;
+  remote_state[8] |= MITSUBISHI_GENERAL_VANNE_MOVE;
 
   // TODO: missing support for swing
   // remote_state[10] = (byte) remote_state[10] | MITSUBISHI_GENERAL_SWING_MASK_BYTE10;

@@ -21,7 +21,8 @@ protected:
   void transmit_state() override;
 
   bool power_{false};
-  int mFanSpeed = 0;
+  uint8_t mFanSpeed = 0;
+  uint8_t mSwingMode = 0;
 };
 
 }  // namespace mitsubishi_general
