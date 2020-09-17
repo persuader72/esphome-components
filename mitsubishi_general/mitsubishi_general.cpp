@@ -7,25 +7,21 @@ namespace mitsubishi_general {
 static const char *TAG = "mitsubishi_general.climate";
 
 // Control packet
-const uint16_t MITSUBISHI_GENERAL_STATE_LENGTH = 14;
-
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE0 = 0x23;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE1 = 0xCB;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE2 = 0x26;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE3 = 0x01;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE4 = 0x00;
+const uint16_t MITSUBISHI_STATE_LENGTH = 13;
+const uint8_t MITSUBISHI_DEFAULT_STATE[MITSUBISHI_STATE_LENGTH] = {0x23, 0xCB, 0x26, 0x01, 0x00, 0x24, 0x03, 0x0B, 0x10, 0x00, 0x00, 0x00, 0x30};
+const uint8_t MITSUBISHI_CRC_BYTE = 12;
 
 // Temperature and POWER ON
+const uint8_t MITSUBISHI_GENERAL_POWER_MASK  = 0b00000100;
 const uint8_t MITSUBISHI_GENERAL_POWER_ON_BYTE5  = 0b00000100;
 const uint8_t MITSUBISHI_GENERAL_POWER_OFF_BYTE5 = 0b00000000;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE5      = MITSUBISHI_GENERAL_POWER_OFF_BYTE5;
 
 // Mode (default AUTO)
-const uint8_t MITSUBISHI_GENERAL_MODE_AUTO_BYTE6 = 0b00100000;
-const uint8_t MITSUBISHI_GENERAL_MODE_HEAT_BYTE6 = 0b00001000;
-const uint8_t MITSUBISHI_GENERAL_MODE_COOL_BYTE6 = 0b00011000;
-const uint8_t MITSUBISHI_GENERAL_MODE_DRY_BYTE6  = 0b00010000;
-const uint8_t MITSUBISHI_GENERAL_BASE_BYTE6      = MITSUBISHI_GENERAL_MODE_AUTO_BYTE6;
+const uint8_t MITSUBISHI_GENERAL_MODE_MASK = 0b00000111;
+const uint8_t MITSUBISHI_GENERAL_MODE_AUTO_BYTE6 = 0b00000111;
+const uint8_t MITSUBISHI_GENERAL_MODE_HEAT_BYTE6 = 0b00000001;
+const uint8_t MITSUBISHI_GENERAL_MODE_COOL_BYTE6 = 0b00000011;
+const uint8_t MITSUBISHI_GENERAL_MODE_DRY_BYTE6  = 0b00000010;
 
 // Temperaute (default 24)
 const uint8_t MITSUBISHI_GENERAL_BASE_BYTE7      = 0b00000111;
@@ -133,22 +129,9 @@ climate::ClimateTraits MitsubishiGeneralClimate::traits() {
 }
 
 void MitsubishiGeneralClimate::transmit_state() {
-  uint8_t remote_state[MITSUBISHI_GENERAL_STATE_LENGTH] = {0};
-
-  remote_state[0] = MITSUBISHI_GENERAL_BASE_BYTE0;
-  remote_state[1] = MITSUBISHI_GENERAL_BASE_BYTE1;
-  remote_state[2] = MITSUBISHI_GENERAL_BASE_BYTE2;
-  remote_state[3] = MITSUBISHI_GENERAL_BASE_BYTE3;
-  remote_state[4] = MITSUBISHI_GENERAL_BASE_BYTE4;
-  remote_state[5] = MITSUBISHI_GENERAL_BASE_BYTE5;
-  remote_state[6] = MITSUBISHI_GENERAL_BASE_BYTE6;
-  remote_state[7] = MITSUBISHI_GENERAL_BASE_BYTE7;
-  remote_state[8] = MITSUBISHI_GENERAL_BASE_BYTE8;
-  remote_state[9] = MITSUBISHI_GENERAL_BASE_BYTE9;
-  remote_state[10] = MITSUBISHI_GENERAL_BASE_BYTE10;
-  remote_state[11] = MITSUBISHI_GENERAL_BASE_BYTE11;
-  remote_state[12] = MITSUBISHI_GENERAL_BASE_BYTE12;
-  remote_state[13] = MITSUBISHI_GENERAL_BASE_BYTE13;
+  
+  uint8_t remote_state[MITSUBISHI_STATE_LENGTH];
+  for(int i=0;i<MITSUBISHI_STATE_LENGTH;i++) remote_state[i] = MITSUBISHI_DEFAULT_STATE[i];
 
   // Set temperature
   uint8_t safecelsius = std::max((uint8_t) this->target_temperature, MITSUBISHI_GENERAL_TEMP_MIN);
@@ -156,29 +139,27 @@ void MitsubishiGeneralClimate::transmit_state() {
   remote_state[7] = (byte) safecelsius - MITSUBISHI_GENERAL_TEMP_MIN;
 
   // If not powered - set power on flag
+  remote_state[5] = remote_state[5] & ~MITSUBISHI_GENERAL_POWER_MASK;
   if (!this->power_ || mode==climate::CLIMATE_MODE_OFF) {
-    remote_state[5] = MITSUBISHI_GENERAL_POWER_ON_BYTE5;
+    remote_state[5] |= MITSUBISHI_GENERAL_POWER_ON_BYTE5;
   } else {
-    remote_state[5] = MITSUBISHI_GENERAL_POWER_OFF_BYTE5;
+    remote_state[5] |= MITSUBISHI_GENERAL_POWER_OFF_BYTE5;
   }
 
   // Set mode
+  remote_state[6] = remote_state[6] & ~MITSUBISHI_GENERAL_MODE_MASK;
   switch (this->mode) {
     case climate::CLIMATE_MODE_OFF:
       remote_state[6] = MITSUBISHI_GENERAL_MODE_AUTO_BYTE6;
-      remote_state[8] = MITSUBISHI_GENERAL_MODE_AUTO_BYTE8;
     case climate::CLIMATE_MODE_COOL:
       remote_state[6] = MITSUBISHI_GENERAL_MODE_COOL_BYTE6;
-      remote_state[8] = MITSUBISHI_GENERAL_MODE_COOL_BYTE8;
       break;
     case climate::CLIMATE_MODE_HEAT:
       remote_state[6] = MITSUBISHI_GENERAL_MODE_HEAT_BYTE6;
-      remote_state[8] = MITSUBISHI_GENERAL_MODE_HEAT_BYTE8;
       break;
     case climate::CLIMATE_MODE_AUTO:
     default:
       remote_state[6] = MITSUBISHI_GENERAL_MODE_AUTO_BYTE6;
-      remote_state[8] = MITSUBISHI_GENERAL_MODE_AUTO_BYTE8;
       break;
       // TODO: CLIMATE_MODE_FAN_ONLY, CLIMATE_MODE_DRY, CLIMATE_MODE_10C are missing in esphome
   }
@@ -192,8 +173,8 @@ void MitsubishiGeneralClimate::transmit_state() {
   // remote_state[14] = (byte) remote_state[14] | MITSUBISHI_GENERAL_OUTDOOR_UNIT_LOW_NOISE_BYTE14;
 
   // CRC
-  remote_state[13] = 0;
-  for (int i = 0; i < MITSUBISHI_GENERAL_STATE_LENGTH-1; i++) {
+  remote_state[MITSUBISHI_CRC_BYTE] = 0;
+  for (int i = 0; i < MITSUBISHI_CRC_BYTE-1; i++) {
     remote_state[13] += (byte) remote_state[i];  // Addiction
   }
 
