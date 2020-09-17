@@ -13,10 +13,15 @@ public:
 public:
   bool on_receive(remote_base::RemoteReceiveData data) override;
 protected:
+  /// Override control to change settings of the climate device.
+  void control(const climate::ClimateCall &call) override;
+  /// Return the traits of this controller.
+  climate::ClimateTraits traits() override;
   /// Transmit via IR the state of this climate controller.
   void transmit_state() override;
 
   bool power_{false};
+  int mFanSpeed = 0;
 };
 
 }  // namespace mitsubishi_general
