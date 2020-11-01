@@ -1,4 +1,29 @@
-## shelly_dallas component
+# persuader72's esphome custom components
+
+This repository contains a collection of my custom components.
+
+## 1. Installation
+
+Clone this repository into `custom_components` in a folder where the your config `yaml` is stored. 
+
+```bash
+git clone https://github.com/persuader72/esphome-components custom_components
+```
+
+Or copy a single selected component folder in your already exiting `custom_components` folder.
+
+## 2. Components
+
+### shelly_dallas component
+
+A component to support [Temperature Sensor AddOn for Shelly 1/1PM](https://shop.shelly.cloud/temperature-sensor-addon-for-shelly-1-1pm-wifi-smart-home-automation#312), derived from the original [dallas](https://github.com/esphome/esphome/tree/dev/esphome/components/dallas) component from [esphome](https://github.com/esphome/). 
+
+To configure it is possible to follow the same schema found dallas [component documentation](https://esphome.io/components/sensor/dallas.html) with the following differences:
+
+* shelly_dallas must be used as platform
+* the pin configuration must be configured as in the following example
+
+To find the sensor ID follow the same procedure in found in dallas component: https://esphome.io/components/sensor/dallas.html
 
 ```yaml
 shelly_dallas:
@@ -16,7 +41,5 @@ sensor:
     address: 0x6E0119384DC70728
     name: "Temperature #3"
 ```
-
-To find the sesnor ID follow the same procedure in https://esphome.io/components/sensor/dallas.html
 
 
