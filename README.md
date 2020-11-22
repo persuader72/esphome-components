@@ -42,4 +42,18 @@ sensor:
     name: "Temperature #3"
 ```
 
+### shelly_dht component
 
+A patch to the [dht](https://github.com/esphome/esphome/tree/dev/esphome/components/dht) component from [esphome](https://github.com/esphome/) to make it compatible with the  [Temperature Sensor AddOn for Shelly 1/1PM](https://shop.shelly.cloud/temperature-sensor-addon-for-shelly-1-1pm-wifi-smart-home-automation#312).
+
+```yaml
+sensor:
+  - platform: shelly_dht
+    pin: GPIO3
+    pin_a: GPIO0
+    temperature:
+      name: "Living Room Temperature"
+    humidity:
+      name: "Living Room Humidity"
+    update_interval: 60s
+```
