@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
-from esphome.const import CONF_FREQUENCY, CONF_ID, CONF_TX_PIN, CONF_RX_PIN, CONF_ADDRESS, CONF_DALI_ID
+from esphome.const import CONF_FREQUENCY, CONF_ID, CONF_TX_PIN, CONF_RX_PIN, CONF_ADDRESS
 from esphome.core import coroutine, coroutine_with_priority
 
 dali_ns = cg.esphome_ns.namespace('dali')
@@ -44,9 +44,9 @@ def dali_device_schema(default_address):
         cv.GenerateID(CONF_DALI_ID): cv.use_id(DALIComponent),
     }
     if default_address is None:
-        schema[cv.Required(CONF_ADDRESS)] = cv.dali_address
+        schema[cv.Required(CONF_ADDRESS)] = cv.int_
     else:
-        schema[cv.Optional(CONF_ADDRESS, default=default_address)] = cv.dali_address
+        schema[cv.Optional(CONF_ADDRESS, default=default_address)] = cv.int_
     return cv.Schema(schema)
 
 
