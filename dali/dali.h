@@ -50,7 +50,7 @@ private:
   bool sample_rx_line() const { return DALI_RX_READ(mRxPin); }
 public:
   void send_forward(uint8_t a, uint8_t d);
-  uint8_t recv_backwoard(uint8 *data);
+  uint8_t recv_backward(uint8 *data);
   void dali_pause(uint8_t numte);
 protected:
   GPIOPin *mTxPin{nullptr};
@@ -73,7 +73,7 @@ public:
   void set_dali_parent(DALIComponent *parent);
 public:
   void send_forward(uint8_t a, uint8_t d) { mParent->send_forward(a, d); }
-  uint8_t recv_backward(uint8 *data) { return mParent->recv_backwoard(data); }
+  uint8_t recv_backward(uint8 *data) { return mParent->recv_backward(data); }
   void dali_pause(uint8_t numte) { mParent->dali_pause(numte); }
 public:
   virtual void set_power(uint8_t power);

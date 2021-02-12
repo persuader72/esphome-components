@@ -103,7 +103,7 @@ void DALIComponent::send_forward(uint8_t a, uint8_t d) {
 
 #define BITS_SIZE 64
 
-uint8_t DALIComponent::recv_backwoard(uint8 *data) {
+uint8_t DALIComponent::recv_backward(uint8 *data) {
     uint8_t result = DALI_RECV_RES_OK;
     bool waitstart = true;
 
@@ -167,7 +167,7 @@ uint8_t DALIComponent::recv_backwoard(uint8 *data) {
 
     uint32_t totalduration = recv_deltatime(starttime, currtime);
     uint32_t frameduration = recv_deltatime(frametime, currtime);
-    ESP_LOGI(TAG, "recv_backwoard result %d size %d total time %d frame time %d", result, curr_bit_index, totalduration, frameduration);
+    //ESP_LOGI(TAG, "recv_backwoard result %d size %d total time %d frame time %d", result, curr_bit_index, totalduration, frameduration);
 
     if(curr_bit_index>0) {
         uint8_t readed = 0;
@@ -197,7 +197,7 @@ uint8_t DALIComponent::recv_backwoard(uint8 *data) {
             }
         }
 
-        ESP_LOGD(TAG, "dali_recv_backwoard readed %d", readed);
+        //ESP_LOGD(TAG, "dali_recv_backwoard readed %d", readed);
         data[0] = readed;
     }
 
