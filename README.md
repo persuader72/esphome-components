@@ -27,8 +27,8 @@ To find the sensor ID follow the same procedure in found in dallas component: ht
 
 ```yaml
 shelly_dallas:
-  pin: GPIO3
-  pin_a: GPIO0
+  pin_a: GPIO3
+  pin_b: GPIO0
 
 sensor:
   - platform: shelly_dallas
