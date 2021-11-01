@@ -9,8 +9,8 @@ static const char *TAG = "dht";
 
 void DHT::setup() {
   ESP_LOGCONFIG(TAG, "Setting up DHT...");
-  this->pin_in_->pin_mode(INPUT);
-  this->pin_out_->pin_mode(OUTPUT);  
+  this->pin_in_->pin_mode(esphome::gpio::FLAG_INPUT);
+  this->pin_out_->pin_mode(esphome::gpio::FLAG_OUTPUT);  
   this->pin_out_->digital_write(true);  
 }
 void DHT::dump_config() {
