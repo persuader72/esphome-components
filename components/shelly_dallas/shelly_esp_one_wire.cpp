@@ -10,9 +10,9 @@ static const char *TAG = "dallas.one_wire";
 const uint8_t ONE_WIRE_ROM_SELECT = 0x55;
 const int ONE_WIRE_ROM_SEARCH = 0xF0;
 
-ESPOneWire::ESPOneWire(GPIOPin *in_pin, GPIOPin *out_pin) : in_pin_(in_pin), out_pin_(out_pin) {
-  this->in_pin_->pin_mode(INPUT);
-  this->out_pin_->pin_mode(OUTPUT);  
+ESPOneWire::ESPOneWire(InternalGPIOPin *in_pin, InternalGPIOPin *out_pin) : in_pin_(in_pin), out_pin_(out_pin) {
+  this->in_pin_->pin_mode(esphome::gpio::FLAG_INPUT);
+  this->out_pin_->pin_mode(esphome::gpio::FLAG_OUTPUT);  
   this->out_pin_->digital_write(true);  
 }
 
@@ -214,9 +214,9 @@ std::vector<uint64_t> ICACHE_RAM_ATTR ESPOneWire::search_vec() {
 void ICACHE_RAM_ATTR ESPOneWire::skip() {
   this->write8(0xCC);  // skip ROM
 }
-GPIOPin *ESPOneWire::get_in_pin() { return this->in_pin_; }
+InternalGPIOPin *ESPOneWire::get_in_pin() { return this->in_pin_; }
 
-GPIOPin *ESPOneWire::get_out_pin() { return this->out_pin_; }
+InternalGPIOPin *ESPOneWire::get_out_pin() { return this->out_pin_; }
 
 uint8_t ICACHE_RAM_ATTR *ESPOneWire::rom_number8_() { return reinterpret_cast<uint8_t *>(&this->rom_number_); }
 

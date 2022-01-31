@@ -11,16 +11,16 @@ namespace dali {
 
 class DALILight : public Component, public DALIDevice, public light::LightOutput {
 public:
+    void setup() override;
     void loop() override;
 public:
     /// Return the LightTraits of this LightOutput.
     virtual light::LightTraits get_traits();
-    virtual void setup_state(light::LightState *state) { mState = state; }
+    virtual void setup_state(light::LightState *state) override;
     virtual void write_state(light::LightState *state);
 private:
     unsigned long elapsedMillis(unsigned long t2, unsigned long t1) { return t2 >= t1 ? t2 - t1 : (~(t1 - t2)) + 1; }
 private:
-    light::LightState *mState{nullptr};
     uint32_t mLastPowerRefresh = 0;
 };
 

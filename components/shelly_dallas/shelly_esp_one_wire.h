@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/core/esphal.h"
+#include "esphome/core/hal.h"
 
 namespace esphome {
 namespace shelly_dallas {
@@ -11,7 +11,7 @@ extern const int ONE_WIRE_ROM_SEARCH;
 
 class ESPOneWire {
  public:
-  explicit ESPOneWire(GPIOPin *in_pin, GPIOPin *out_pin);
+  explicit ESPOneWire(InternalGPIOPin *in_pin, InternalGPIOPin *out_pin);
 
   /** Reset the bus, should be done before all write operations.
    *
@@ -54,16 +54,16 @@ class ESPOneWire {
   /// Helper that wraps search in a std::vector.
   std::vector<uint64_t> search_vec();
 
-  GPIOPin *get_in_pin();
-  GPIOPin *get_out_pin();
+  InternalGPIOPin *get_in_pin();
+  InternalGPIOPin *get_out_pin();
   
 
  protected:
   /// Helper to get the internal 64-bit unsigned rom number as a 8-bit integer pointer.
   inline uint8_t *rom_number8_();
 
-  GPIOPin *in_pin_;
-  GPIOPin *out_pin_;
+  InternalGPIOPin *in_pin_;
+  InternalGPIOPin *out_pin_;
   uint8_t last_discrepancy_{0};
   uint8_t last_family_discrepancy_{0};
   bool last_device_flag_{false};
