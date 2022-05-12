@@ -23,8 +23,8 @@ CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(DHT),
     cv.Required(CONF_PIN): pins.gpio_input_pin_schema,
     cv.Required(CONF_PIN_A): pins.gpio_output_pin_schema,
-    cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(UNIT_CELSIUS, ICON_THERMOMETER, 1),
-    cv.Optional(CONF_HUMIDITY): sensor.sensor_schema(UNIT_PERCENT, ICON_WATER_PERCENT, 0),
+    cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(unit_of_measurement=UNIT_CELSIUS, icon=ICON_THERMOMETER, accuracy_decimals=1),
+    cv.Optional(CONF_HUMIDITY): sensor.sensor_schema(unit_of_measurement=UNIT_PERCENT, icon=ICON_WATER_PERCENT, accuracy_decimals=0),
     cv.Optional(CONF_MODEL, default='auto detect'): cv.enum(DHT_MODELS, upper=True, space='_'),
 }).extend(cv.polling_component_schema('60s'))
 
