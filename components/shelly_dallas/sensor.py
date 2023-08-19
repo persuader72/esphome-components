@@ -7,7 +7,7 @@ from . import ShellyDallasComponent, shelly_dallas_ns
 
 DallasTemperatureSensor = shelly_dallas_ns.class_('ShellyDallasTemperatureSensor', sensor.Sensor)
 
-CONFIG_SCHEMA = cv.All(sensor.sensor_schema(UNIT_CELSIUS, ICON_THERMOMETER, 1).extend({
+CONFIG_SCHEMA = cv.All(sensor.sensor_schema(unit_of_measurement=UNIT_CELSIUS, icon=ICON_THERMOMETER, accuracy_decimals=1).extend({
     cv.GenerateID(): cv.declare_id(DallasTemperatureSensor),
     cv.GenerateID(CONF_DALLAS_ID): cv.use_id(ShellyDallasComponent),
 
