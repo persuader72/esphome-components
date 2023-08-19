@@ -174,7 +174,7 @@ const std::string &ShellyDallasTemperatureSensor::get_address_name() {
 
   return this->address_name_;
 }
-bool ICACHE_RAM_ATTR ShellyDallasTemperatureSensor::read_scratch_pad() {
+bool IRAM_ATTR ShellyDallasTemperatureSensor::read_scratch_pad() {
   ESPOneWire *wire = this->parent_->one_wire_;
   if (!wire->reset()) {
     return false;
