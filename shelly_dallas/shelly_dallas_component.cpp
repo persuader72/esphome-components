@@ -1,6 +1,8 @@
 #include "shelly_dallas_component.h"
 #include "esphome/core/log.h"
 
+#include <sstream>
+
 namespace esphome {
 namespace shelly_dallas {
 
@@ -14,6 +16,13 @@ static const uint8_t DALLAS_MODEL_DS28EA00 = 0x42;
 static const uint8_t DALLAS_COMMAND_START_CONVERSION = 0x44;
 static const uint8_t DALLAS_COMMAND_READ_SCRATCH_PAD = 0xBE;
 static const uint8_t DALLAS_COMMAND_WRITE_SCRATCH_PAD = 0x4E;
+
+std::string uint64_to_string( uint64 value ) {
+    std::ostringstream os;
+    os << value;
+    return os.str();
+}
+
 
 uint16_t ShellyDallasTemperatureSensor::millis_to_wait_for_conversion() const {
   switch (this->resolution_) {
@@ -176,7 +185,7 @@ const std::string &ShellyDallasTemperatureSensor::get_address_name() {
 
   return this->address_name_;
 }
-bool ICACHE_RAM_ATTR ShellyDallasTemperatureSensor::read_scratch_pad() {
+bool HOT IRAM_ATTR ShellyDallasTemperatureSensor::read_scratch_pad() {
   ESPOneWire *wire = this->parent_->one_wire_;
   if (!wire->reset()) {
     return false;
