@@ -39,8 +39,6 @@ binary_sensor:
   - platform: gpio                     
     pin:                               
       number: GPIO5                    
-      #mode: INPUT_PULLUP              
-      #inverted: True
     name: "${board_title} ${device_num} Switch"             
     id: ${board_name}_${device_num}_switch
 
@@ -52,12 +50,7 @@ external_components:
       ref: master
     components: [ shelly_dallas ]
 
-#external_components:
-#  - source: "/home/stefano/Sviluppo/Stefano/Meshmesh/workspace/esphome-components/"
-
 shelly_dallas:
-  #pin: GPIO12
-  #pin_a: GPIO13
   pin_a: GPIO3
   pin_b: GPIO0
 
@@ -68,17 +61,7 @@ sensor:
   - platform: shelly_dallas
     address: 0x0B01193807DD3128
     name: "Temperature #2"
-#    on_value_range:
-#    - above: 58.0
-#      then:
-#        - switch.turn_off: ${board_name}_${device_num}_relay
-#    - below: 50.0
-#      then:
-#        - switch.turn_on: ${board_name}_${device_num}_relay
   - platform: shelly_dallas
     address: 0x6E0119384DC70728
     name: "Temperature #3"
-#  - platform: dallas
-#    address: 0xda0416b2082eff28
-#    name: "Temperature #3"
 
