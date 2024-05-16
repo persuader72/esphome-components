@@ -4,17 +4,18 @@
 #include "esphome/components/sensor/sensor.h"
 #include "shelly_esp_one_wire.h"
 
+#include <vector>
+
 namespace esphome {
 namespace shelly_dallas {
 
-class ShellyDallasTemperatureSensor;
+class DallasTemperatureSensor;
 
-class ShellyDallasComponent : public PollingComponent {
+class DallasComponent : public PollingComponent {
  public:
-  explicit ShellyDallasComponent(ESPOneWire *one_wire);
-
-  ShellyDallasTemperatureSensor *get_sensor_by_address(uint64_t address, uint8_t resolution);
-  ShellyDallasTemperatureSensor *get_sensor_by_index(uint8_t index, uint8_t resolution);
+  void set_pin(InternalGPIOPin *pin) { pin_ = pin; }
+  void set_pin_a(InternalGPIOPin *pin) { pin_a_ = pin; }
+  void register_sensor(DallasTemperatureSensor *sensor);
 
   void setup() override;
   void dump_config() override;
@@ -23,18 +24,19 @@ class ShellyDallasComponent : public PollingComponent {
   void update() override;
 
  protected:
-  friend ShellyDallasTemperatureSensor;
+  friend DallasTemperatureSensor;
 
+  InternalGPIOPin *pin_;
+  InternalGPIOPin *pin_a_;
   ESPOneWire *one_wire_;
-  std::vector<ShellyDallasTemperatureSensor *> sensors_;
+  std::vector<DallasTemperatureSensor *> sensors_;
   std::vector<uint64_t> found_sensors_;
 };
 
 /// Internal class that helps us create multiple sensors for one Dallas hub.
-class ShellyDallasTemperatureSensor : public sensor::Sensor {
+class DallasTemperatureSensor : public sensor::Sensor {
  public:
-  ShellyDallasTemperatureSensor(uint64_t address, uint8_t resolution, ShellyDallasComponent *parent);
-
+  void set_parent(DallasComponent *parent) { parent_ = parent; }
   /// Helper to get a pointer to the address as uint8_t.
   uint8_t *get_address8();
   /// Helper to create (and cache) the name for this sensor. For example "0xfe0000031f1eaf29".
@@ -63,7 +65,7 @@ class ShellyDallasTemperatureSensor : public sensor::Sensor {
   std::string unique_id() override;
 
  protected:
-  ShellyDallasComponent *parent_;
+  DallasComponent *parent_;
   uint64_t address_;
   optional<uint8_t> index_;
 
