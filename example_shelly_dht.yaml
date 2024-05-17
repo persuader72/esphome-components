@@ -1,0 +1,65 @@
+substitutions:
+  board_name: "shelly1v3_boiler"
+  board_title: "Shelly Boiler"
+  device_num: "01"
+
+esphome:
+  name: ${board_name}_${device_num}
+
+esp8266:
+  board: esp01_1m
+  framework:
+    version: 3.0.2
+
+logger:
+  level: VERBOSE
+  baud_rate: 115200
+
+# Enable Home Assistant API
+api:
+  reboot_timeout: 900s
+
+socket:
+  implementation: meshmesh_esp8266
+
+meshmesh:
+  baud_rate: 0
+  rx_buffer_size: 0
+  tx_buffer_size: 0
+  password: !secret meshmesh_password
+  channel: 6
+
+switch:
+  - platform: gpio
+    pin: GPIO4
+    id: ${board_name}_${device_num}_relay
+    name: "${board_title} ${device_num} Relay"
+
+binary_sensor:                         
+  - platform: gpio                     
+    pin:                               
+      number: GPIO5                    
+    name: "${board_title} ${device_num} Switch"             
+    id: ${board_name}_${device_num}_switch
+
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/persuader72/esphome-components.git
+      ref: master
+    components: [ shelly_dht ]
+
+shelly_dallas:
+  pin_a: GPIO3
+  pin_b: GPIO0
+
+sensor:
+  - platform: shelly_dht
+    pin_a: GPIO3
+    pin_b: GPIO0
+    temperature:
+      name: "Living Room Temperature"
+    humidity:
+      name: "Living Room Humidity"
+    update_interval: 60s

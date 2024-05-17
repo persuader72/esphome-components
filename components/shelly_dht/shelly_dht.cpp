@@ -1,22 +1,26 @@
-#include "dht.h"
+#include "shelly_dht.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 
 namespace esphome {
-namespace dht {
+namespace shelly_dht {
 
-static const char *TAG = "dht";
+static const char *const TAG = "dht";
 
 void DHT::setup() {
   ESP_LOGCONFIG(TAG, "Setting up DHT...");
-  this->pin_in_->pin_mode(INPUT);
-  this->pin_out_->pin_mode(OUTPUT);  
-  this->pin_out_->digital_write(true);  
+  this->pin_->setup();
+  this->pin_->pin_mode(gpio::FLAG_INPUT);
+
+  this->pin_b_->setup();
+  this->pin_b_->pin_mode(gpio::FLAG_OUTPUT);
+  this->pin_b_->digital_write(true);
+ 
 }
 void DHT::dump_config() {
   ESP_LOGCONFIG(TAG, "DHT:");
-  LOG_PIN("  Pin In: ", this->pin_in_);
-  LOG_PIN("  Pin Out: ", this->pin_out_);
+  LOG_PIN("  PinA: ", this->pin_);
+  LOG_PIN("  PinB: ", this->pin_b_);
   if (this->is_auto_detect_) {
     ESP_LOGCONFIG(TAG, "  Auto-detected model: %s", this->model_ == DHT_MODEL_DHT11 ? "DHT11" : "DHT22");
   } else if (this->model_ == DHT_MODEL_DHT11) {
@@ -33,19 +37,19 @@ void DHT::dump_config() {
 
 void DHT::update() {
   float temperature, humidity;
-  bool error;
+  bool success;
   if (this->model_ == DHT_MODEL_AUTO_DETECT) {
     this->model_ = DHT_MODEL_DHT22;
-    error = this->read_sensor_(&temperature, &humidity, false);
-    if (error) {
+    success = this->read_sensor_(&temperature, &humidity, false);
+    if (!success) {
       this->model_ = DHT_MODEL_DHT11;
       return;
     }
   } else {
-    error = this->read_sensor_(&temperature, &humidity, true);
+    success = this->read_sensor_(&temperature, &humidity, true);
   }
 
-  if (error) {
+  if (success) {
     ESP_LOGD(TAG, "Got Temperature=%.1f°C Humidity=%.1f%%", temperature, humidity);
 
     if (this->temperature_sensor_ != nullptr)
@@ -72,7 +76,7 @@ void DHT::set_dht_model(DHTModel model) {
   this->model_ = model;
   this->is_auto_detect_ = model == DHT_MODEL_AUTO_DETECT;
 }
-bool HOT ICACHE_RAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool report_errors) {
+bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool report_errors) {
   *humidity = NAN;
   *temperature = NAN;
 
@@ -80,28 +84,32 @@ bool HOT ICACHE_RAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, 
   int8_t i = 0;
   uint8_t data[5] = {0, 0, 0, 0, 0};
 
+  //this->pin_->digital_write(false);
+  //this->pin_->pin_mode(gpio::FLAG_OUTPUT);
+  this->pin_b_->digital_write(false);
+
+  if (this->model_ == DHT_MODEL_DHT11) {
+    delayMicroseconds(18000);
+  } else if (this->model_ == DHT_MODEL_SI7021) {
+    delayMicroseconds(500);
+    this->pin_b_->digital_write(true);
+    delayMicroseconds(40);
+  } else if (this->model_ == DHT_MODEL_DHT22_TYPE2) {
+    delayMicroseconds(2000);
+  } else if (this->model_ == DHT_MODEL_AM2120 || this->model_ == DHT_MODEL_AM2302) {
+    delayMicroseconds(1000);
+  } else {
+    delayMicroseconds(800);
+  }
+  //this->pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+  this->pin_b_->digital_write(true);
+
   {
     InterruptLock lock;
-
-    //this->pin_->digital_write(false);
-    //this->pin_->pin_mode(OUTPUT);
-    //this->pin_->digital_write(false);
-    this->pin_out_->digital_write(false);
-
-    if (this->model_ == DHT_MODEL_DHT11) {
-      delayMicroseconds(18000);
-    } else if (this->model_ == DHT_MODEL_SI7021) {
-      delayMicroseconds(500);
-      this->pin_out_->digital_write(true);
-      delayMicroseconds(40);
-    } else if (this->model_ == DHT_MODEL_DHT22_TYPE2) {
-      delayMicroseconds(2000);
-    } else {
-      delayMicroseconds(800);
-    }
-    //this->pin_->pin_mode(INPUT_PULLUP);
-    this->pin_out_->digital_write(true);
-    delayMicroseconds(40);
+    // Host pull up 20-40us then DHT response 80us
+    // Start waiting for initial rising edge at the center when we
+    // expect the DHT response (30us+40us)
+    delayMicroseconds(70);
 
     uint8_t bit = 7;
     uint8_t byte = 0;
@@ -110,12 +118,13 @@ bool HOT ICACHE_RAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, 
       uint32_t start_time = micros();
 
       // Wait for rising edge
-      while (!this->pin_in_->digital_read()) {
+      while (!this->pin_->digital_read()) {
         if (micros() - start_time > 90) {
-          if (i < 0)
+          if (i < 0) {
             error_code = 1;
-          else
+          } else {
             error_code = 2;
+          }
           break;
         }
       }
@@ -126,12 +135,13 @@ bool HOT ICACHE_RAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, 
       uint32_t end_time = start_time;
 
       // Wait for falling edge
-      while (this->pin_in_->digital_read()) {
+      while (this->pin_->digital_read()) {
         if ((end_time = micros()) - start_time > 90) {
-          if (i < 0)
+          if (i < 0) {
             error_code = 3;
-          else
+          } else {
             error_code = 4;
+          }
           break;
         }
       }
@@ -204,7 +214,7 @@ bool HOT ICACHE_RAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, 
       const uint16_t raw_humidity = uint16_t(data[0]) * 10 + data[1];
       *humidity = raw_humidity / 10.0f;
     } else {
-      // For compatibily with DHT11 models which might only use 2 bytes checksums, only use the data from these two
+      // For compatibility with DHT11 models which might only use 2 bytes checksums, only use the data from these two
       // bytes
       *temperature = data[2];
       *humidity = data[0];
@@ -213,8 +223,12 @@ bool HOT ICACHE_RAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, 
     uint16_t raw_humidity = (uint16_t(data[0] & 0xFF) << 8) | (data[1] & 0xFF);
     uint16_t raw_temperature = (uint16_t(data[2] & 0xFF) << 8) | (data[3] & 0xFF);
 
-    if (this->model_ != DHT_MODEL_DHT22_TYPE2 && (raw_temperature & 0x8000) != 0)
-      raw_temperature = ~(raw_temperature & 0x7FFF);
+    if (raw_temperature & 0x8000) {
+      if (!(raw_temperature & 0x4000))
+        raw_temperature = ~(raw_temperature & 0x7FFF);
+    } else if (raw_temperature & 0x800) {
+      raw_temperature |= 0xf000;
+    }
 
     if (raw_temperature == 1 && raw_humidity == 10) {
       if (report_errors) {
