@@ -28,6 +28,7 @@ To find the sensor ID follow the same procedure in found in dallas component: ht
 ```yaml
 shelly_dallas:
   pin_a: GPIO3
+  #pin_a: GPIO1 #For Shelly Plus 2PM
   pin_b: GPIO0
 
 sensor:
