@@ -62,8 +62,6 @@ class DallasTemperatureSensor : public sensor::Sensor {
 
   float get_temp_c();
 
-  std::string unique_id() override;
-
  protected:
   DallasComponent *parent_;
   uint64_t address_;
