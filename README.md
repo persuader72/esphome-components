@@ -50,6 +50,10 @@ To configure it is possible to follow the same schema found dallas [component do
 To find the sensor ID follow the same procedure in found in dallas component: https://esphome.io/components/sensor/dallas.html
 
 ```yaml
+external_components:
+  - source: github://persuader72/esphome-components@master
+    components: [ shelly_dallas ]
+
 shelly_dallas:
   pin_a: GPIO3
   #pin_a: GPIO1 #For Shelly Plus 2PM
@@ -72,6 +76,10 @@ sensor:
 A patch to the [dht](https://github.com/esphome/esphome/tree/dev/esphome/components/dht) component from [esphome](https://github.com/esphome/) to make it compatible with the  [Temperature Sensor AddOn for Shelly 1/1PM](https://shop.shelly.cloud/temperature-sensor-addon-for-shelly-1-1pm-wifi-smart-home-automation#312).
 
 ```yaml
+external_components:
+  - source: github://persuader72/esphome-components@master
+    components: [ shelly_dht ]
+
 sensor:
   - platform: shelly_dht
     pin: GPIO3
