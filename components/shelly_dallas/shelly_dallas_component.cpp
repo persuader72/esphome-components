@@ -126,7 +126,7 @@ void DallasComponent::update() {
   }
 
   for (auto *sensor : this->sensors_) {
-    this->set_timeout(sensor->get_address_name(), sensor->millis_to_wait_for_conversion(), [this, sensor] {
+    this->set_timeout(sensor->get_address_name().c_str(), sensor->millis_to_wait_for_conversion(), [this, sensor] {
       bool res = sensor->read_scratch_pad();
 
       if (!res) {
