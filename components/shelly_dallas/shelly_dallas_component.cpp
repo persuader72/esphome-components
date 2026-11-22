@@ -1,5 +1,6 @@
 #include "shelly_dallas_component.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace shelly_dallas {
@@ -47,7 +48,8 @@ void DallasComponent::setup() {
   for (auto &address : raw_sensors) {
     auto *address8 = reinterpret_cast<uint8_t *>(&address);
     if (crc8(address8, 7) != address8[7]) {
-      ESP_LOGW(TAG, "Dallas device 0x%s has invalid CRC.", format_hex(address).c_str());
+      char addr_buf[format_hex_size(sizeof(uint64_t))];
+      ESP_LOGW(TAG, "Dallas device 0x%s has invalid CRC.", format_hex_to(addr_buf, address));
       continue;
     }
     if (address8[0] != DALLAS_MODEL_DS18S20 && address8[0] != DALLAS_MODEL_DS1822 &&
@@ -83,7 +85,8 @@ void DallasComponent::dump_config() {
   } else {
     ESP_LOGD(TAG, "  Found sensors:");
     for (auto &address : this->found_sensors_) {
-      ESP_LOGD(TAG, "    0x%s", format_hex(address).c_str());
+      char addr_buf[format_hex_size(sizeof(uint64_t))];
+      ESP_LOGD(TAG, "    0x%s", format_hex_to(addr_buf, address));
     }
   }
 
@@ -125,12 +128,14 @@ void DallasComponent::update() {
     this->one_wire_->write8(DALLAS_COMMAND_START_CONVERSION);
   }
 
+  // The scheduler no longer takes std::string names: use the sensor position as numeric timeout id.
+  uint32_t timeout_id = 0;
   for (auto *sensor : this->sensors_) {
-    this->set_timeout(sensor->get_address_name(), sensor->millis_to_wait_for_conversion(), [this, sensor] {
+    this->set_timeout(timeout_id++, sensor->millis_to_wait_for_conversion(), [this, sensor] {
       bool res = sensor->read_scratch_pad();
 
       if (!res) {
-        ESP_LOGW(TAG, "'%s' - Resetting bus for read failed!", sensor->get_name().c_str());
+        ESP_LOGW(TAG, "'%s' - Resetting bus for read failed!", LOG_STR_ARG(sensor->get_log_name()));
         sensor->publish_state(NAN);
         this->status_set_warning();
         return;
@@ -142,7 +147,7 @@ void DallasComponent::update() {
       }
 
       float tempc = sensor->get_temp_c();
-      ESP_LOGD(TAG, "'%s': Got Temperature=%.1f°C", sensor->get_name().c_str(), tempc);
+      ESP_LOGD(TAG, "'%s': Got Temperature=%.1f°C", LOG_STR_ARG(sensor->get_log_name()), tempc);
       sensor->publish_state(tempc);
     });
   }
@@ -156,7 +161,8 @@ void DallasTemperatureSensor::set_index(uint8_t index) { this->index_ = index; }
 uint8_t *DallasTemperatureSensor::get_address8() { return reinterpret_cast<uint8_t *>(&this->address_); }
 const std::string &DallasTemperatureSensor::get_address_name() {
   if (this->address_name_.empty()) {
-    this->address_name_ = std::string("0x") + format_hex(this->address_);
+    char addr_buf[format_hex_size(sizeof(uint64_t))];
+    this->address_name_ = std::string("0x") + format_hex_to(addr_buf, this->address_);
   }
 
   return this->address_name_;
@@ -256,9 +262,9 @@ bool DallasTemperatureSensor::check_scratch_pad() {
             crc8(this->scratch_pad_, 8));
 #endif
   if (!chksum_validity) {
-    ESP_LOGW(TAG, "'%s' - Scratch pad checksum invalid!", this->get_name().c_str());
+    ESP_LOGW(TAG, "'%s' - Scratch pad checksum invalid!", LOG_STR_ARG(this->get_log_name()));
   } else if (!config_validity) {
-    ESP_LOGW(TAG, "'%s' - Scratch pad config register invalid!", this->get_name().c_str());
+    ESP_LOGW(TAG, "'%s' - Scratch pad config register invalid!", LOG_STR_ARG(this->get_log_name()));
   }
   return chksum_validity && config_validity;
 }
